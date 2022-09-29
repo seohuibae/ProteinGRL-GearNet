@@ -1,0 +1,6 @@
+from pretrains.multiview_contrast import MultiviewContrast
+from pretrains.self_prediction.angle_prediction import AnglePrediction
+from pretrains.self_prediction.dihedral_prediction import DihedralPrediction
+from pretrains.self_prediction.distance_prediction import DistancePrediction
+from pretrains.self_prediction.residue_prediction import ResiduePrediction
+from pretrains.self_prediction.utils import NBIN, get_bin, cosinus, dihedral, cosinus_torch, dihedral_torch
