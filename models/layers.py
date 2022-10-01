@@ -28,7 +28,7 @@ class GraphConvolutionLayer(nn.Module):
                 bias=False,
                 featureless=False, 
                 add_self_loop=False, bn=False, skip=False, **kwargs):
-        super(GraphConvolutionLayer, self).__init__(**kwargs)
+        super(GraphConvolutionLayer, self).__init__()
 
         self.featureless = featureless
         self.input_dim = input_dim 
@@ -61,8 +61,17 @@ class GraphConvolutionLayer(nn.Module):
             self.conv = GearNetEdgeConv(input_dim, output_dim, bias=bias) # TODO Aggregation function for GearNet-Edge (Zhang et al., 2022)
         elif conv == 'transformer': 
             from torch_geometric.nn.conv import TransformerConv 
-            from utils.data.protein import EDGE_TYPE_GEARNET
-            self.conv = TransformerConv(input_dim, output_dim, heads=2, dropout=0.1, edge_dim=len(EDGE_TYPE_GEARNET), bias=bias) # dropout for attention function 
+            from utils.data.protein import EDGE_FEAT_DIM
+            self.is_last = kwargs['is_last']
+            self.is_first = kwargs['is_first']
+            self.num_heads = 2
+            self.dropout_attn = 0.6
+            if self.is_first: 
+                self.conv = TransformerConv(input_dim, output_dim, heads=self.num_heads, dropout=self.dropout_attn, edge_dim=EDGE_FEAT_DIM, bias=bias)
+            elif self.is_last: 
+                self.conv = TransformerConv(self.num_heads*input_dim, output_dim, heads=self.num_heads, concat=False, dropout=self.dropout_attn, edge_dim=EDGE_FEAT_DIM, bias=bias) # dropout for attention function 
+            else: 
+                self.conv = TransformerConv(self.num_heads*input_dim, output_dim, heads=self.num_heads, dropout=self.dropout_attn, edge_dim=EDGE_FEAT_DIM, bias=bias)
             # edge features are added to the keys after linear transformation
         else:
             raise NotImplementedError
@@ -70,7 +79,10 @@ class GraphConvolutionLayer(nn.Module):
         if not bn: 
             self.bn = None 
         else: 
-            self.bn = nn.BatchNorm1d(output_dim)
+            if conv in ['GAT', 'transformer'] and not self.is_last:
+                self.bn = nn.BatchNorm1d(self.num_heads*output_dim)
+            else: 
+                self.bn = nn.BatchNorm1d(output_dim) # concatenated 
         self.activation = activation
         self.dropout = dropout
         self.skip = skip
