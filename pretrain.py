@@ -108,7 +108,7 @@ if __name__ == "__main__":
     from config.pretrain import args
     torch.multiprocessing.set_start_method('spawn')
 
-    exp_config = f"pretrain_{args.dataset}_{args.model}"
+    exp_config = f"pretrain_{args.dataset}_{args.model}_{args.type}"
     print(exp_config)
     
     if args.run_dir!="" and not os.path.exists(args.run_dir): # in case you don't start with bash script 

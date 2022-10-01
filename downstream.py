@@ -149,7 +149,7 @@ def train_test_downstream(args, loader, model, device):
 def main(args):
     # ROOT_DIR = '../data-downstream'
     ROOT_DIR = args.root
-    
+
     set_seed(args.seed, use_cuda=True)
     device = set_device(args)
 
@@ -182,7 +182,7 @@ def main(args):
 
 if __name__ == '__main__': 
     from config.downstream import args
-    exp_config = f"downstream_{args.dataset}_{args.model}"
+    exp_config = f"downstream_{args.dataset}_{args.model}_{args.load_dir}_{args.type}_{args.start_from}"
     print(exp_config)
     # in case you don't start with bash script 
     if args.run_dir!="" and not os.path.exists(args.run_dir):
