@@ -13,6 +13,7 @@ def parse_gpus(gpus):
 def get_params():
     ''' Get parameters from command line '''
     parser = argparse.ArgumentParser() # set to FC
+    parser.add_argument('--root', type=str, default='../data-downstream/')
     parser.add_argument("--dataset", type=str, default='FC-Fold', help='Downstream task', required=True, choices = ["EC", "GO-BP", "GO-MF", "GO-CC", "FC-Fold", "FC-Super", "FC-Fam", "RX"]) # EC, GO-BP, GO-MF, GO-CC, FC-Fold, FC-Super, FC-Fam, RX 
     parser.add_argument("--type", type=str, default="", choices=["", "cl", "angle", "dihedral", "distance", "residue"])
     parser.add_argument('--gpus', type=str, default='0',help='device to use')  #

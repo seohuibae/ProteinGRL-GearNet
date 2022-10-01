@@ -13,6 +13,7 @@ def parse_gpus(gpus):
 def get_params():
     ''' Get parameters from command line '''
     parser = argparse.ArgumentParser()
+    parser.add_argument('--root', type=str, default='../') #'/home/mnt/hdd/seohui/'
     parser.add_argument("--dataset", type=str, default='swissprot', help="Dataset string")
     parser.add_argument("--type", type=str, required=True, choices=["cl", "angle", "dihedral", "distance", "residue"])
     parser.add_argument('--gpus', type=str, default='0',help='device to use')  #

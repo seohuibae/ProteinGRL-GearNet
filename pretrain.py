@@ -86,7 +86,8 @@ def pretrain(args, train_loader, pretrain_module, device):
             torch.save(pretrain_module.state_dict(), args.run_dir+'/'+ckpt_name)
 
 def main(args): 
-    ROOT_DIR = '/home/mnt/hdd/seohui/'
+    ROOT_DIR = args.root 
+    
     set_seed(args.seed, use_cuda=True)
     device = set_device(args)
 

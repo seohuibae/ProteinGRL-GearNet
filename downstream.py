@@ -147,7 +147,9 @@ def train_test_downstream(args, loader, model, device):
     return best_val_eval_trail, best_test_eval
 
 def main(args):
-    ROOT_DIR = '../data-downstream'
+    # ROOT_DIR = '../data-downstream'
+    ROOT_DIR = args.root
+    
     set_seed(args.seed, use_cuda=True)
     device = set_device(args)
 
