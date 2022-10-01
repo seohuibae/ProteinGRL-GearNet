@@ -86,7 +86,7 @@ def compute_distmat_pyg(data):
     eucl_dists_list = [] 
     nidx = torch.tensor([i for i in range(data.num_nodes)])
     for i in range(len(data.coords)):
-        eucl_dists = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(data.coords[i],p=2))
+        eucl_dists = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(data.coords[i], 'minkowski', p=2))
         eucl_dists = torch.FloatTensor(eucl_dists)
         eucl_dists_list.append(eucl_dists)    
     return eucl_dists_list
