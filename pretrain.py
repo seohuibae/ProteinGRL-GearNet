@@ -79,7 +79,7 @@ def pretrain(args, train_loader, pretrain_module, device):
             del data 
             if (i+1)%10 == 0: 
                 print("Epoch:", '%04d'%(epoch+1), "Iter:", '%04d'%(i+1),"|", "Loss:", "{:.5f}".format(train_loss/(i+1)))
-            break
+            
         if args.run_dir!="" and (epoch+1) % args.save_every == 0: 
             ckpt_name = f'model_{args.seed}_{epoch}.pt'
             print('save', ckpt_name)
@@ -91,7 +91,8 @@ def main(args):
     device = set_device(args)
 
     train_dataset = get_dataset(root=ROOT_DIR, name='swissprot', run_process=False) # DO NOT CHANGE
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=2, exclude_keys=['b_factor', 'node_id', 'residue_name', 'chain_id',"name"])
+    from torch.utils.data.dataloader import default_collate
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=args.pin_memory, exclude_keys=['b_factor', 'node_id', 'residue_name', 'chain_id',"name"])
 
     args.hiddens = '512-512-512-512-512'
     args.epochs = 50
@@ -104,6 +105,8 @@ def main(args):
     
 if __name__ == "__main__": 
     from config.pretrain import args
+    torch.multiprocessing.set_start_method('spawn')
+
     exp_config = f"pretrain_{args.dataset}_{args.model}"
     print(exp_config)
     

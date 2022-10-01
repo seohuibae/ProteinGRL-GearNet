@@ -28,6 +28,9 @@ def get_params():
     parser.add_argument('--dropout',type=float, default=0.1, help='dropout rate (1 - keep probability).')
     parser.add_argument('--l2reg', action='store_true')
 
+    parser.add_argument('--num_workers', type=int, default=0)
+    parser.add_argument('--pin_memory', action='store_true')
+
     # parser.add_argument('--epochs', type=int, default=50, help='Number of epochs to train.')
     # parser.add_argument("--lr", type=float, default=0.001,help='initial learning rate.')
     # parser.add_argument('--weight_decay',type=float, default=5e-4, help='Weight for L2 loss on embedding matrix.')

@@ -151,10 +151,10 @@ def main(args):
     set_seed(args.seed, use_cuda=True)
     device = set_device(args)
 
-    train_dataset, val_dataset, test_dataset = get_dataset(root=ROOT_DIR, name=args.dataset, run_process=False) 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=2, exclude_keys=['b_factor', 'node_id', 'residue_name', 'chain_id',"name"])
-    val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False, drop_last=True, num_workers=2, exclude_keys=['b_factor', 'node_id', 'residue_name', 'chain_id', "name"])
-    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, drop_last=True, num_workers=2, exclude_keys=['b_factor', 'node_id', 'residue_name', 'chain_id', "name"])
+    train_dataset, val_dataset, test_dataset = get_dataset(root=ROOT_DIR, name=args.dataset, run_process=False) # DO NOT CHANGE
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=args.pin_memory, exclude_keys=['b_factor', 'node_id', 'residue_name', 'chain_id',"name"])
+    val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False, drop_last=True, num_workers=args.num_workers, pin_memory=args.pin_memory, exclude_keys=['b_factor', 'node_id', 'residue_name', 'chain_id', "name"])
+    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, drop_last=True, num_workers=args.num_workers, pin_memory=args.pin_memory, exclude_keys=['b_factor', 'node_id', 'residue_name', 'chain_id', "name"])
 
     if args.dataset in ['FC-Fold', 'FC-Super', 'FC-Fam', 'RX']: 
         args.hiddens = '512-512-512-512-512'

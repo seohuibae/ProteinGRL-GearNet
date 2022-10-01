@@ -29,7 +29,6 @@ def get_dataset(root, name, num_cores=16, run_process=False):
         train_dataset = load_FC_dataset(pDataset = "training", root=root, num_cores=num_cores,transform_pyg=transform_pyg, run_process=run_process)
         val_dataset = load_FC_dataset(pDataset = "validation", root=root, num_cores=num_cores,transform_pyg=transform_pyg, run_process=run_process)
         dataset = (train_dataset, val_dataset, test_dataset)
-        print(len(train_dataset), len(val_dataset), len(test_dataset))
     elif name == 'RX': 
         from datasets import load_RX_dataset 
         train_dataset = load_RX_dataset(pDataset = "training", root=root, num_cores=num_cores, transform_pyg=transform_pyg, run_process=run_process)
@@ -40,5 +39,3 @@ def get_dataset(root, name, num_cores=16, run_process=False):
         raise NotImplementedError
     print(dataset)
     return dataset 
-
-

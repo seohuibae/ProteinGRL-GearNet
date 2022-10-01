@@ -28,6 +28,9 @@ def get_params():
     parser.add_argument('--batch_size', type=int, default=2, help='batch size')
     parser.add_argument('--trails',type=int, default=5, help='trails')
     parser.add_argument('--early_stop', type=int, default= -1, help='early_stop')
+
+    parser.add_argument('--num_workers', type=int, default=0)
+    parser.add_argument('--pin_memory', action='store_true')
     
     # parser.add_argument('--epochs', type=int, default=200, help='Number of epochs to train.')
     # parser.add_argument('--optimizer', type=str, default='SGD', choices = ['Adam', 'SGD'])
