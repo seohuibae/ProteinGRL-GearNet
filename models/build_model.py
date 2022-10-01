@@ -55,7 +55,7 @@ def build_encoder(args):
         
     elif model_name == 'transformer': # structure-based
         from models.encoders import GraphTransformer
-        encoder = GraphTransformer(input_dim, hiddens, hiddens[-1], args.dropout, use_edge_feat=True)
+        encoder = GraphTransformer(input_dim, hiddens, hiddens[-1], args.dropout, use_edge_feat=False)
     elif model_name == 'transformer-v1': # structure-based
         from models.encoders import GraphTransformerV1
         encoder = GraphTransformerV1(input_dim, hiddens, hiddens[-1], args.dropout)
