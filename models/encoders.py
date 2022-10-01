@@ -279,11 +279,11 @@ class GraphTransformer(nn.Module):
             from utils.data.protein import edge_feature_gearnet_pyg, annotate_distmat_pyg
             data = annotate_distmat_pyg(data)
             data = edge_feature_gearnet_pyg(data)
+        else: 
+            data.edge_feat = None
         for layer in self.layers_:
-            if self.use_edge_feat:
-                x = layer(x, edge_index, training, edge_attr=data.edge_feat)
-            else:
-                x = layer(x, edge_index, training)
+            x = layer(x, edge_index, training, edge_attr=data.edge_feat)
+
         return x 
 
 class GraphTransformerV1(nn.Module): # submodule 
