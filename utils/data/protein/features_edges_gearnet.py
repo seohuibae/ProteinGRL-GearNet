@@ -22,6 +22,7 @@ EDGE_TYPE_GEARNET = [
     "distance_threshold",
     "k_nn"
 ]
+EDGE_FEAT_DIM = 49 
 
 def node_features_edge_one_hot_sequential_spatial_distance(
     u, v,
