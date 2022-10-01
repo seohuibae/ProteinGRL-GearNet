@@ -26,7 +26,7 @@ def edge_feature_gearnet_pyg(data):
     #     return seq_dist
     node_feature_u = data.node_feat[data.edge_index[0]]
     node_feature_v = data.node_feat[data.edge_index[1]]
-    spatial_dist = torch.tensor([data.distmat[e[0], e[1]] for e in data.edge_index.t()]).to(data.node_feat.device).unsqueeze(1)
+    spatial_dist = torch.as_tensor([data.distmat[e[0], e[1]] for e in data.edge_index.t()]).to(data.node_feat.device).unsqueeze(1)
     sequence_dist = torch.abs(data.edge_index[0]-data.edge_index[1]).unsqueeze(1) # node ids are sorted in order 
     edge_one_hot = data.kind 
     # sequence_dist = torch.FloatTensor(parse_sequence_dist(data.node_id, data.edge_index)).unsqueeze(1)     

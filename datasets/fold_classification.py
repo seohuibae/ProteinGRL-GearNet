@@ -89,4 +89,18 @@ def load_FC_dataset(pDataset = "training", root='../data-downstream', num_cores=
         chain_selections_=[chain_selections_[i] for i in idx_processed]
         graph_labels_=[graph_labels_[i] for i in idx_processed]
         dataset = ProteinGraphDataset(root=pPath, process_in_separate_dir=process_in_separate_dir, pdb_paths=pdb_paths_, chain_selections=chain_selections_, graph_labels=graph_labels_, graphein_config=graphein_config, graph_format_convertor=graph_format_convertor, num_cores=num_cores, ext='ent', dnames2paths=dnames2paths, run_process=False, transform_pyg = transform_pyg)
+    # pdb_paths_=pdb_paths_[:5]
+    # chain_selections_=chain_selections_[:5]
+    # graph_labels_=graph_labels_[:5]
+
+    # if run_process:
+    #     dataset = InMemoryProteinGraphDataset(root=pPath, process_in_separate_dir=process_in_separate_dir, name=process_in_separate_dir, pdb_paths=pdb_paths_, chain_selections=chain_selections_, graph_labels=graph_labels_, graphein_config=graphein_config, graph_format_convertor=graph_format_convertor, num_cores=num_cores, ext='ent', dnames2paths=dnames2paths, run_process=True, transform_pyg = transform_pyg)
+    #     np.save(open(pPath+"/"+pDataset+"-idx-processed.npy",'wb'), np.array(dataset.get_idx_processed()))
+    # else:
+    #     idx_processed = np.load(open(pPath+"/"+pDataset+"-idx-processed.npy",'rb')).tolist()
+    #     pdb_paths_=[pdb_paths_[i] for i in idx_processed]
+    #     chain_selections_=[chain_selections_[i] for i in idx_processed]
+    #     graph_labels_=[graph_labels_[i] for i in idx_processed]
+    #     dataset = InMemoryProteinGraphDataset(root=pPath, process_in_separate_dir=process_in_separate_dir, name=process_in_separate_dir, pdb_paths=pdb_paths_, chain_selections=chain_selections_, graph_labels=graph_labels_, graphein_config=graphein_config, graph_format_convertor=graph_format_convertor, num_cores=num_cores, ext='ent', dnames2paths=dnames2paths, run_process=False, transform_pyg = transform_pyg)
+    
     return dataset

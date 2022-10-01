@@ -40,7 +40,9 @@ class GraphConvolutionLayer(nn.Module):
             self.conv = GCNConv(input_dim, output_dim, bias=bias, add_self_loops=add_self_loop)
         elif conv == 'gat':
             from torch_geometric.nn.conv import GATConv
-            self.conv = GATConv(input_dim, output_dim, bias=bias, add_self_loops=add_self_loop)
+            from utils.data.protein import EDGE_TYPE_GEARNET
+            self.conv = GATConv(input_dim, output_dim, heads=2, negative_slope=0.2, dropout=0.1, edge_dim=len(EDGE_TYPE_GEARNET), bias=bias, add_self_loops=add_self_loop)
+            # edge features are added to the keys after linear transformation
         elif conv == 'gin':
             from torch_geometric.nn.conv import GINConv 
             self.conv = GINConv(input_dim, output_dim, bias=bias, add_self_loops=add_self_loop)
@@ -57,6 +59,11 @@ class GraphConvolutionLayer(nn.Module):
         elif conv == 'gearnet-edge':
             from models.convs import GearNetEdgeConv
             self.conv = GearNetEdgeConv(input_dim, output_dim, bias=bias) # TODO Aggregation function for GearNet-Edge (Zhang et al., 2022)
+        elif conv == 'transformer': 
+            from torch_geometric.nn.conv import TransformerConv 
+            from utils.data.protein import EDGE_TYPE_GEARNET
+            self.conv = TransformerConv(input_dim, output_dim, heads=2, dropout=0.1, edge_dim=len(EDGE_TYPE_GEARNET), bias=bias) # dropout for attention function 
+            # edge features are added to the keys after linear transformation
         else:
             raise NotImplementedError
         ###########################
@@ -72,7 +79,7 @@ class GraphConvolutionLayer(nn.Module):
         # Convolution - Batch Normalization - Activation - Dropout - Pooling
         if self.skip:
             # assert x_in.shape[0] == self.conv[1]
-            x_in = x.clone().detach() 
+            x_in = x.clone()
         # convolve
         if self.conv_name in ['gcn', 'gat', 'gin']:
             x = self.conv(x, edge_index)
@@ -82,6 +89,8 @@ class GraphConvolutionLayer(nn.Module):
             x = self.conv(x, edge_index, edge_type=kwargs['edge_type'])
         elif self.conv_name  in ['gearnet-edge', 'gearnet-edge-ieconv']:
             x = self.conv(x, edge_index, edge_type=kwargs['edge_type'], message_jir=kwargs['edge_feat'])
+        elif self.conv_name in ['transformer']:
+            x = self.conv(x, edge_index, edge_attr=kwargs['edge_attr'])
         else:
             raise NotImplementedError
         # batch norm 
@@ -92,7 +101,7 @@ class GraphConvolutionLayer(nn.Module):
 
         # skip connection
         if self.skip and x.shape[1] == x_in.shape[1]: 
-            x += x_in 
+            x = x.clone() + x_in 
         # dropout
         if isinstance(training, bool) and training:
             x = F.dropout(x, self.dropout)        

@@ -30,11 +30,16 @@ def build_encoder(args):
     except:
         hiddens =[] 
     ########################################
-    if model_name == 'gcn': # gcn, gvp, 3dcnn_mqa, graphqa, new ieconv
+    if model_name == 'gcn': # structure-based
         from models.encoders import GCN
         encoder = GCN(input_dim, hiddens, hiddens[-1], args.dropout)
-    elif model_name == 'transformer': # cnn, resnet, lstm, transformer
-        raise NotImplementedError
+    elif model_name == 'gat': 
+        from models.encoders import GAT
+        encoder = GAT(input_dim, hiddens, hiddens[-1], args.dropout)
+    elif model_name == 'gin':
+        from models.encoders import GIN
+        encoder = GIN(input_dim, hiddens, hiddens[-1], args.dropout)
+
     elif model_name == 'gearnet':
         from models.encoders import GearNet
         encoder = GearNet(input_dim, hiddens, hiddens[-1], args.dropout)
@@ -47,6 +52,13 @@ def build_encoder(args):
     elif model_name == 'gearnet-edge-ieconv': 
         from models.encoders import GearNetEdgeIEConv
         encoder = GearNetEdgeIEConv(input_dim, hiddens, hiddens[-1], args.dropout)
+        
+    elif model_name == 'transformer': # structure-based
+        from models.encoders import GraphTransformer
+        encoder = GraphTransformer(input_dim, hiddens, hiddens[-1], args.dropout, use_edge_feat=True)
+    elif model_name == 'transformer-v1': # structure-based
+        from models.encoders import GraphTransformerV1
+        encoder = GraphTransformerV1(input_dim, hiddens, hiddens[-1], args.dropout)
     else: 
         raise NotImplementedError
     ######################################## 

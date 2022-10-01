@@ -47,6 +47,9 @@ class InMemoryProteinGraphDataset(InMemoryDataset):
         graph_label_map: Optional[Dict[str, torch.Tensor]] = None,
         node_label_map: Optional[Dict[str, torch.Tensor]] = None,
         chain_selection_map: Optional[Dict[str, List[str]]] = None,
+        graph_labels: Optional[List[torch.Tensor]] = None,
+        node_labels: Optional[List[torch.Tensor]] = None,
+        chain_selections: Optional[List[str]] = None,
         graphein_config: ProteinGraphConfig = ProteinGraphConfig(),
         graph_format_convertor: GraphFormatConvertor = GraphFormatConvertor(
             src_format="nx", dst_format="pyg"
@@ -58,7 +61,11 @@ class InMemoryProteinGraphDataset(InMemoryDataset):
         pre_filter: Optional[Callable] = None,
         num_cores: int = 16,
         af_version: int = 2,
-        ext: str ='pdb'
+        ext: str ='pdb', # gz for swissprot
+        dnames2paths = None,
+        process_in_separate_dir = None,
+        run_process = False,
+        transform_pyg = False,
     ):
         """In Memory dataset for protein graphs.
 
@@ -168,9 +175,27 @@ class InMemoryProteinGraphDataset(InMemoryDataset):
         ] = []  # list of pdb codes that failed to download
 
         # Labels & Chains
-        self.graph_label_map = graph_label_map
-        self.node_label_map = node_label_map
-        self.chain_selection_map = chain_selection_map
+        # self.graph_label_map = graph_label_map
+        # self.node_label_map = node_label_map
+        # self.chain_selection_map = chain_selection_map
+        self.examples: Dict[int, str] = dict(enumerate(self.structures))
+
+        if graph_labels is not None:
+            self.graph_label_map = dict(enumerate(graph_labels))
+        else:
+            self.graph_label_map = None
+
+        if node_labels is not None:
+            self.node_label_map = dict(enumerate(node_labels))
+        else:
+            self.node_label_map = None
+
+        if chain_selections is not None:
+            self.chain_selection_map = dict(enumerate(chain_selections))
+        else:
+            self.chain_selection_map = None
+        self.bad_pdbs: List[str] = []
+
 
         # Configs
         self.config = graphein_config
@@ -179,7 +204,13 @@ class InMemoryProteinGraphDataset(InMemoryDataset):
         self.pdb_transform = pdb_transform
         self.num_cores = num_cores
         self.af_version = af_version
-        self.ext = ext
+        self.ext = ext # TODO
+        self.dnames2paths = dnames2paths
+
+        self.process_in_separate_dir = process_in_separate_dir
+        self.cnt_none = 0
+        self.run_process = run_process # True when initial process 
+        self.transform_pyg = transform_pyg 
         super().__init__(
             root,
             transform=transform,
@@ -187,13 +218,14 @@ class InMemoryProteinGraphDataset(InMemoryDataset):
             pre_filter=pre_filter,
         )
         self.config.pdb_dir = Path(self.raw_dir)
+        # if self.run_process:
+        #     self.process()
         self.data, self.slices = torch.load(self.processed_paths[0])
 
     @property
     def raw_file_names(self) -> List[str]:
         """Name of the raw files in the dataset."""
-        # return [f"{pdb}.pdb" for pdb in self.structures]
-        return [f"{pdb}.gz" for pdb in self.structures]
+        return [f"{pdb}.pdb" for pdb in self.structures]
 
     @property
     def processed_file_names(self) -> List[str]:
@@ -206,6 +238,13 @@ class InMemoryProteinGraphDataset(InMemoryDataset):
             return self.pdb_path  # replace raw dir with user local pdb_path
         else:
             return os.path.join(self.root, "raw")
+
+    @property # TODO done
+    def processed_dir(self) -> str:
+        if self.process_in_separate_dir is None:
+            return os.path.join(self.root, 'inmemory')
+        else:
+            return os.path.join(self.root, 'inmemory-'+self.process_in_separate_dir) # separate folder
 
     def download(self):
         """Download the PDB files from RCSB or Alphafold."""
@@ -255,11 +294,16 @@ class InMemoryProteinGraphDataset(InMemoryDataset):
 
     def process(self):
         """Process structures into PyG format and save to disk."""
+        idx_processed = []
         # Read data into huge `Data` list.
-        structure_files = [
-            f"{self.raw_dir}/{pdb}.{self.ext}" for pdb in self.structures
-        ]
+        # structure_files = [
+        #     f"{self.raw_dir}/{pdb}.{self.ext}" for pdb in self.structures
+        # ]
         # f"{self.raw_dir}/{pdb}.pdb" for pdb in self.structures
+        if self.dnames2paths is not None:
+            structure_files = [self.dnames2paths[pdb] for pdb in self.structures]
+        else:
+            structure_files = [f"{self.raw_dir}/{pdb}.{self.ext}" for pdb in self.structures] # TODO
 
         # Apply transformations to raw PDB files.
         if self.pdb_transform is not None:
@@ -282,37 +326,75 @@ class InMemoryProteinGraphDataset(InMemoryDataset):
             pdb_path_it=structure_files,
             config=self.config,
             chain_selections=chain_selections,
-            return_dict=True,
-            num_cores=self.num_cores,
+            return_dict=False,
+            # num_cores=self.num_cores,
         )
+
+        ## delete None instance 
+        graphs_ = []
+        pdbs_ = []
+        chain_selections_ = []
+       
+        for i,graph in enumerate(graphs): 
+            if graph == None: 
+                self.cnt_none+=1
+                print(f'{self.cnt_none}/{len(self.examples)} not imported due to unexpected error')
+            else: 
+                idx_processed.append(i)
+                graphs_.append(graph)
+                pdbs_.append(self.structures[i])
+                chain_selections_.append(chain_selections[i])
+        del graphs
+        del chain_selections
+
         # Transform graphs
         if self.graph_transformation_funcs is not None:
             print("Transforming Nx Graphs...")
             for func in self.graph_transformation_funcs:
-                graphs = {k: func(v) for k, v in graphs.items()}
+                graphs = {k: func(v) for k, v in graphs_.items()}
 
         # Convert to PyTorch Geometric Data
         print("Converting Graphs...")
-        graphs = {k: self.graph_format_convertor(v) for k, v in graphs.items()}
-        graphs = dict(zip(self.structures, graphs.values()))
+        # graphs = {k: self.graph_format_convertor(v) for k, v in graphs_.items()}
+        graphs = [self.graph_format_convertor(g) for g in graphs_]
+        # graphs = dict(zip(self.structures, graphs_))
+
+        # # Assign labels
+        # if self.graph_label_map:
+        #     print(self.graph_label_map)
+        #     print("Assigning graph Labels...")
+        #     for k, v in self.graph_label_map.items():
+        #         try:
+        #             graphs[k].graph_y = v
+        #         except KeyError:
+        #             print(f"{k} not found in graphs. Skipping.")
+        # if self.node_label_map:
+        #     print("Assigning node Labels...")
+        #     for k, v in self.node_label_map.items():
+        #         try:
+        #             graphs[k].node_y = v
+        #         except KeyError:
+        #             print(f"{k} not found in graphs. Skipping.")
+        # data_list = list(graphs.values())
+        # del graphs
+
+        # Convert to PyTorch Geometric Data
+        graphs = [self.graph_format_convertor(g) for g in graphs_]
+        # print(graphs)
 
         # Assign labels
         if self.graph_label_map:
-            print("Assigning graph Labels...")
-            for k, v in self.graph_label_map.items():
-                try:
-                    graphs[k].graph_y = v
-                except KeyError:
-                    print(f"{k} not found in graphs. Skipping.")
+            labels = [self.graph_label_map[idx] for idx in idx_processed]
+            for i, _ in enumerate(idx_processed):
+                graphs[i].graph_y = labels[i] #torch.tensor([labels[i]])
         if self.node_label_map:
-            print("Assigning node Labels...")
-            for k, v in self.node_label_map.items():
-                try:
-                    graphs[k].node_y = v
-                except KeyError:
-                    print(f"{k} not found in graphs. Skipping.")
-        data_list = list(graphs.values())
-        del graphs
+            labels = [self.node_label_map[idx] for idx in idx_processed]
+            for i, _ in enumerate(idx_processed):
+                graphs[i].graph_y = labels[i] #torch.tensor([labels[i]])
+
+        data_list = graphs
+        del graphs 
+
 
         if self.pre_filter is not None:
             print("Pre-filtering Data...")
@@ -322,10 +404,19 @@ class InMemoryProteinGraphDataset(InMemoryDataset):
             print("Pre-transforming data...")
             data_list = [self.pre_transform(data) for data in data_list]
 
+        self.idx_processed = idx_processed
+        print(idx_processed)
+        print('done')
+        print(f'{self.cnt_none}/{len(self.examples)} not processed due to unexpected error')
+
         print("Saving Data...")
+        print(data_list)
         data, slices = self.collate(data_list)
         torch.save((data, slices), self.processed_paths[0])
         print("Done!")
+
+    def get_idx_processed(self):
+        return self.idx_processed
 
 class ProteinGraphDataset(Dataset):
     def __init__(
@@ -586,15 +677,15 @@ class ProteinGraphDataset(Dataset):
         """Returns length of data set (number of structures)."""
         return len(self.structures)
 
-    # def transform_pdbs(self):
-    #     """
-    #     Performs pre-processing of PDB structures before constructing graphs.
-    #     """
-    #     structure_files = [
-    #         f"{self.raw_dir}/{pdb}.pdb" for pdb in self.structures
-    #     ]
-    #     for func in self.pdb_transform:
-    #         func(structure_files)
+    def transform_pdbs(self):
+        """
+        Performs pre-processing of PDB structures before constructing graphs.
+        """
+        structure_files = [
+            f"{self.raw_dir}/{pdb}.pdb" for pdb in self.structures
+        ]
+        for func in self.pdb_transform:
+            func(structure_files)
 
     # def transform_graphein_graphs(self, graph: nx.Graph):
     #     for func in self.graph_transformation_funcs:
@@ -689,11 +780,11 @@ class ProteinGraphDataset(Dataset):
             if self.graph_label_map:
                 labels = [self.graph_label_map[idx] for idx in chunk_]
                 for i, _ in enumerate(chunk_):
-                    graphs[i].graph_y = torch.tensor([labels[i]])
+                    graphs[i].graph_y = labels[i] #torch.tensor([labels[i]])
             if self.node_label_map:
                 labels = [self.node_label_map[idx] for idx in chunk_]
                 for i, _ in enumerate(chunk_):
-                    graphs[i].graph_y = torch.tensor([labels[i]])
+                    graphs[i].graph_y = labels[i] #torch.tensor([labels[i]])
 
             data_list = graphs
             # print('check')
@@ -750,7 +841,6 @@ class ProteinGraphDataset(Dataset):
             return self.transform_pyg(data)
         return data 
 
-   
 
 class ProteinGraphListDataset(InMemoryDataset):
     def __init__(

@@ -12,17 +12,13 @@ from torch_geometric.utils.num_nodes import maybe_num_nodes
 
 from models.layers import GraphConvolutionLayer, EdgeMessagePassingLayer, pooling_layer
 
-
+######
+# GNN-based encoders  
 class GCN(nn.Module):
     def __init__(self, input_dim, hiddens, output_dim, dropout, add_self_loop=True, bn=True, **kwargs):
         super(GCN, self).__init__(**kwargs)
         
-        # try:
-        #     hiddens = [int(s) for s in hiddens.split('-')]
-        # except:
-        #     raise ValueError
         self.hiddens = hiddens
-
         self.layers_ = nn.ModuleList([])
         layer0 = GraphConvolutionLayer(input_dim=input_dim,
                                   output_dim=hiddens[0], conv='gcn', dropout=dropout,
@@ -41,27 +37,69 @@ class GCN(nn.Module):
             x = layer(x, edge_index, training)
         return x 
 
+class GAT(nn.Module):
+    def __init__(self, input_dim, hiddens, output_dim, dropout, add_self_loop=True, bn=True, **kwargs):
+        super(GAT, self).__init__(**kwargs)
+        
+        self.hiddens = hiddens
+        self.layers_ = nn.ModuleList([])
+        layer0 = GraphConvolutionLayer(input_dim=input_dim,
+                                  output_dim=hiddens[0], conv='gat', dropout=dropout,
+                                  activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+        self.layers_.append(layer0)
+        nhiddens = len(hiddens)
+        for _ in range(1,nhiddens):
+            layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
+                                      output_dim=hiddens[_], conv='gat', dropout=dropout,
+                                      activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+            self.layers_.append(layertemp)
 
+    def forward(self, data, training=None):
+        x, edge_index = data.node_feat.to(torch.float), data.edge_index
+        for layer in self.layers_:
+            x = layer(x, edge_index, training)
+        return x 
+
+class GIN(nn.Module):
+    def __init__(self, input_dim, hiddens, output_dim, dropout, add_self_loop=True, bn=True, **kwargs):
+        super(GIN, self).__init__(**kwargs)
+        
+        self.hiddens = hiddens
+        self.layers_ = nn.ModuleList([])
+        layer0 = GraphConvolutionLayer(input_dim=input_dim,
+                                  output_dim=hiddens[0], conv='gin', dropout=dropout,
+                                  activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+        self.layers_.append(layer0)
+        nhiddens = len(hiddens)
+        for _ in range(1,nhiddens):
+            layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
+                                      output_dim=hiddens[_], conv='gin', dropout=dropout,
+                                      activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+            self.layers_.append(layertemp)
+
+    def forward(self, data, training=None):
+        x, edge_index = data.node_feat.to(torch.float), data.edge_index
+        for layer in self.layers_:
+            x = layer(x, edge_index, training)
+        return x 
+######
+# proposed encoders  
 class GearNet(nn.Module): 
     def __init__(self, input_dim, hiddens, output_dim, dropout, **kwargs):
         super(GearNet, self).__init__(**kwargs)
-        
-        # try:
-        #     hiddens = [int(s) for s in hiddens.split('-')]
-        # except:
-        #     raise ValueError
+    
         self.hiddens = hiddens
         self.layers_ = nn.ModuleList([])
 
         layer0 = GraphConvolutionLayer(input_dim=input_dim,
                                   output_dim=hiddens[0], conv='gearnet', dropout=dropout,
-                                  activation=nn.ReLU(), add_self_loop=False, bn=True, skip=True) # TODO
+                                  activation=nn.ReLU(), bn=True, skip=True) # TODO
         self.layers_.append(layer0)
         nhiddens = len(hiddens)
         for _ in range(1,nhiddens):
             layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
                                       output_dim=hiddens[_], conv='gearnet', dropout=dropout,
-                                      activation=nn.ReLU(), add_self_loop=False, bn=True, skip=True)
+                                      activation=nn.ReLU(), bn=True, skip=True)
             self.layers_.append(layertemp)
 
     def forward(self, data, training=None):
@@ -74,34 +112,30 @@ class GearNet(nn.Module):
 class GearNetIEConv(nn.Module): 
     def __init__(self, input_dim, hiddens, output_dim, dropout, **kwargs):
         super(GearNet, self).__init__(**kwargs)
-        
-        # try:
-        #     hiddens = [int(s) for s in hiddens.split('-')]
-        # except:
-        #     raise ValueError
+
         self.hiddens = hiddens
         self.layers_ = nn.ModuleList([])
         layer0 = GraphConvolutionLayer(input_dim=input_dim,
                                   output_dim=hiddens[0], conv='gearnet', dropout=dropout,
-                                  activation=nn.ReLU(), add_self_loop=False, bn=True, skip=True) # TODO
+                                  activation=nn.ReLU(), bn=True, skip=True) # TODO
         self.layers_.append(layer0)
         nhiddens = len(hiddens)
         for _ in range(1,nhiddens):
             layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
                                       output_dim=hiddens[_], conv='gearnet', dropout=dropout,
-                                      activation=nn.ReLU(), add_self_loop=False, bn=True, skip=True)
+                                      activation=nn.ReLU(), bn=True, skip=True)
             self.layers_.append(layertemp)
 
         self.ielayers_ = nn.ModuleList([])
         layer0 = GraphConvolutionLayer(input_dim=input_dim,
                                   output_dim=hiddens[0], conv='ieconv', dropout=dropout,
-                                  activation=lambda x: x, add_self_loop=False, bn=False, skip=False) # TODO
+                                  activation=lambda x: x, bn=False, skip=False) # TODO
         self.ielayers_.append(layer0)
         nhiddens = len(hiddens)
         for _ in range(1,nhiddens):
             layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
                                       output_dim=hiddens[_], conv='ieconv', dropout=dropout,
-                                      activation=lambda x: x, add_self_loop=False, bn=False, skip=False)
+                                      activation=lambda x: x, bn=False, skip=False)
             self.ielayers_.append(layertemp)
      
 
@@ -118,21 +152,17 @@ class GearNetEdge(nn.Module):
     def __init__(self, input_dim, hiddens, output_dim, dropout, **kwargs):
         super(GearNetEdge, self).__init__(**kwargs)
         
-        # try:
-        #     hiddens = [int(s) for s in hiddens.split('-')]
-        # except:
-        #     raise ValueError
         self.hiddens = hiddens
         self.layers_ = nn.ModuleList([])
         layer0 = GraphConvolutionLayer(input_dim=input_dim,
                                   output_dim=hiddens[0], conv='gearnet-edge', dropout=dropout,
-                                  activation=nn.ReLU(), add_self_loop=False, bn=True, skip=True)
+                                  activation=nn.ReLU(), bn=True, skip=True)
         self.layers_.append(layer0)
         nhiddens = len(hiddens)
         for _ in range(1,nhiddens):
             layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
                                       output_dim=hiddens[_], conv='gearnet-edge', dropout=dropout,
-                                      activation=nn.ReLU(), add_self_loop=False, bn=True, skip=True)
+                                      activation=nn.ReLU(),bn=True, skip=True)
             self.layers_.append(layertemp)
 
         self.mlayers_ = nn.ModuleList([])
@@ -164,21 +194,17 @@ class GearNetEdgeIEConv(nn.Module):
     def __init__(self, input_dim, hiddens, output_dim, dropout, **kwargs):
         super(GearNetEdge, self).__init__(**kwargs)
         
-        # try:
-        #     hiddens = [int(s) for s in hiddens.split('-')]
-        # except:
-        #     raise ValueError
         self.hiddens = hiddens
         self.layers_ = nn.ModuleList([])
         layer0 = GraphConvolutionLayer(input_dim=input_dim,
                                   output_dim=hiddens[0], conv='gearnet-edge', dropout=dropout,
-                                  activation=nn.ReLU(), add_self_loop=False, bn=True, skip=True)
+                                  activation=nn.ReLU(), bn=True, skip=True)
         self.layers_.append(layer0)
         nhiddens = len(hiddens)
         for _ in range(1,nhiddens):
             layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
                                       output_dim=hiddens[_], conv='gearnet-edge', dropout=dropout,
-                                      activation=nn.ReLU(), add_self_loop=False, bn=True, skip=True)
+                                      activation=nn.ReLU(), bn=True, skip=True)
             self.layers_.append(layertemp)
 
         self.mlayers_ = nn.ModuleList([])
@@ -217,8 +243,54 @@ class GearNetEdgeIEConv(nn.Module):
             x = layer(x, edge_index, training, edge_type=data.edge_type, message_jir=mjir) + ielayer(x, edge_index, training, ie_edge_type=data.ie_edge_type)
         return x 
 
+######## 
+# transformer-based encoders    
 class GraphTransformer(nn.Module): 
-    def __init__(self):
-        pass 
-    def forward(self): 
-        pass 
+    def __init__(self, input_dim, hiddens, output_dim, dropout, **kwargs):
+        super(NaiveGraphTransformer, self).__init__(**kwargs)
+
+        self.use_edge_feat = kwargs['use_edge_feat']
+        self.hiddens = hiddens
+        self.layers_ = nn.ModuleList([])
+        layer0 = GraphConvolutionLayer(input_dim=input_dim,
+                                  output_dim=hiddens[0], conv='transformer', dropout=dropout,
+                                  activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+        self.layers_.append(layer0)
+        nhiddens = len(hiddens)
+        for _ in range(1,nhiddens):
+            layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
+                                      output_dim=hiddens[_], conv='transformer', dropout=dropout,
+                                      activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+            self.layers_.append(layertemp)
+
+    def forward(self, data, training=None):
+        x, edge_index = data.node_feat.to(torch.float), data.edge_index
+        if self.use_edge_feat: 
+            from utils.data.protein import edge_feature_gearnet_pyg
+            data = edge_feature_gearnet_pyg(data)
+        for layer in self.layers_:
+            x = layer(x, edge_index, training, edge_attr=data.edge_feat)
+        return x 
+
+class GraphTransformerV1(nn.Module): # submodule 
+    def __init__(self, input_dim, hiddens, output_dim, dropout, **kwargs):
+        super(NaiveGraphTransformer, self).__init__(**kwargs)
+
+        self.hiddens = hiddens
+        self.layers_ = nn.ModuleList([])
+        layer0 = GraphConvolutionLayer(input_dim=input_dim,
+                                  output_dim=hiddens[0], conv='transformer-v1', dropout=dropout,
+                                  activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+        self.layers_.append(layer0)
+        nhiddens = len(hiddens)
+        for _ in range(1,nhiddens):
+            layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
+                                      output_dim=hiddens[_], conv='transformer-v1', dropout=dropout,
+                                      activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+            self.layers_.append(layertemp)
+
+    def forward(self, data, training=None):
+        x, edge_index = data.node_feat.to(torch.float), data.edge_index
+        for layer in self.layers_:
+            x = layer(x, edge_index, training)
+        return x 
