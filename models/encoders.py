@@ -45,13 +45,18 @@ class GAT(nn.Module):
         self.layers_ = nn.ModuleList([])
         layer0 = GraphConvolutionLayer(input_dim=input_dim,
                                   output_dim=hiddens[0], conv='gat', dropout=dropout,
-                                  activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+                                  activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn, is_first=True, is_last=False)
         self.layers_.append(layer0)
         nhiddens = len(hiddens)
         for _ in range(1,nhiddens):
-            layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
+            if _!= nhiddens-1:
+                layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
+                                        output_dim=hiddens[_], conv='gat', dropout=dropout,
+                                        activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn, is_first=False, is_last=False)
+            else:
+                layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
                                       output_dim=hiddens[_], conv='gat', dropout=dropout,
-                                      activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+                                      activation=nn.ReLU(), add_self_loop=False, bn=True, is_first=False, is_last=True)
             self.layers_.append(layertemp)
 
     def forward(self, data, training=None):
@@ -59,6 +64,7 @@ class GAT(nn.Module):
         for layer in self.layers_:
             x = layer(x, edge_index, training)
         return x 
+
 
 class GIN(nn.Module):
     def __init__(self, input_dim, hiddens, output_dim, dropout, add_self_loop=True, bn=True, **kwargs):
