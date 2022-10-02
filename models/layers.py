@@ -144,4 +144,3 @@ class EdgeMessagePassingLayer(GraphConvolutionLayer):
         assert conv == 'rgcn'
         assert bn == True 
         assert skip == False 
-
