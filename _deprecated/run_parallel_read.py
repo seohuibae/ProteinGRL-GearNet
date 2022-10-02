@@ -17,16 +17,15 @@ if __name__ == "__main__":
 
     vaccs, taccs= [], []
     for fpath in json_files: 
-        with open(fpath, 'r') as f: 
-            json_dict = json.load(f)
+        with open(fpath, 'r', encoding="UTF-8") as f: 
+            json_dict = json.load(f.read())
             vaccs.append(json_dict['veval'])
             taccs.append(json_dict['teval'])
             exp_config = json_dict['exp_config']
             args_dict = json_dict['args']
     
-    if len(accs)==0 and len(vaccs)==0 and len(taccs)==0:
+    if len(vaccs)==0 and len(taccs)==0:
         print('empty')
-        os.rmdir(args.run_dir)
         exit() 
 
     vacc = [np.mean(vaccs), np.std(vaccs)]

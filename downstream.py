@@ -187,6 +187,16 @@ if __name__ == '__main__':
     # in case you don't start with bash script 
     if args.run_dir!="" and not os.path.exists(args.run_dir):
         os.mkdir(args.run_dir)
+    if args.run_dir != '': 
+        import json 
+        fpath = args.run_dir+f'/{args.seed}.json'
+        args_dict = vars(args)
+        json_dict = {
+            'exp_config': exp_config,
+            'args': args_dict
+        }
+        with open(fpath, 'w') as f: 
+            json.dump(json_dict, f)
 
     veval, teval = main(args) # MAIN 
 
@@ -201,15 +211,17 @@ if __name__ == '__main__':
     print(f"val eval: {veval}")
     print(f"test eval: {teval}")
 
-    if args.run_dir != '': 
-        import json 
-        fpath = args.run_dir+f'/{args.seed}.json'
-        args_dict = vars(args)
-        json_dict = {
-            'veval': veval, 
-            'teval': teval,
-            'exp_config': exp_config,
-            'args': args_dict
-        }
-        with open(fpath, 'w') as f: 
-            json.dump(json_dict, f)
+    print('done')
+
+    # if args.run_dir != '': 
+    #     import json 
+    #     fpath = args.run_dir+f'/{args.seed}.json'
+    #     json_dict = json.load(f.read())
+
+    #     args_dict = vars(args)
+    #     json_dict = {
+    #         'veval': veval, 
+    #         'teval': teval,
+    #     }
+    #     with open(fpath, 'w') as f: 
+    #         json.dump(json_dict, f)
