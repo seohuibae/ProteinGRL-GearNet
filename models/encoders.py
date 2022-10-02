@@ -293,6 +293,35 @@ class GraphTransformer(nn.Module):
 
         return x 
 
+class GraphMultisetPoolingTransformer(nn.Module):
+    def __init__(self, input_dim, hiddens, output_dim, dropout, add_self_loop=True, bn=True, **kwargs):
+        super(GraphMultisetPoolingTransformer, self).__init__(**kwargs)
+        from models.aggr import GraphMultisetTransformer
+        
+        self.hiddens = hiddens
+        self.layers_ = nn.ModuleList([])
+
+        layer0 = GraphConvolutionLayer(input_dim=input_dim,
+                                  output_dim=hiddens[0], conv='gcn', dropout=dropout,
+                                  activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+        self.layers_.append(layer0)
+        nhiddens = len(hiddens)
+        for _ in range(1,nhiddens-2):
+            layertemp = GraphConvolutionLayer(input_dim=hiddens[_-1],
+                                      output_dim=hiddens[_], conv='gcn', dropout=dropout,
+                                      activation=nn.ReLU(), add_self_loop=add_self_loop, bn=bn)
+            self.layers_.append(layertemp)                 
+        # learnable pooling 
+        layertemp = GraphMultisetTransformer(in_channels=hiddens[-2], hidden_channels=hiddens[-1], out_channels=output_dim, Conv=None, num_nodes=300, pooling_ratio=0.25, pool_sequences=['GMPool_G', 'SelfAtt', 'GMPool_I'], num_heads=4, layer_norm=True)
+        self.layers_.append(layertemp)
+
+    def forward(self, data, training=None):
+        x, edge_index = data.node_feat.to(torch.float), data.edge_index
+        for layer in self.layers_:
+            x = layer(x=x, index=data.batch, edge_index=edge_index)
+        return x 
+
+
 class GraphTransformerV1(nn.Module): # submodule 
     def __init__(self, input_dim, hiddens, output_dim, dropout, **kwargs):
         super(GraphTransformerV1, self).__init__(**kwargs)

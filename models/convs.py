@@ -85,6 +85,9 @@ class GearNetEdgeConv(FastRGCNConv): # (Zhang et al., 2022)
         return x_j + self.fc_message(message_jir) # sum
 
 
+########
+
+
 # ###############
 ### for pyg built-in convs
 # from typing import Optional, Tuple, Union
