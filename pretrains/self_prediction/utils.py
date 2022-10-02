@@ -51,3 +51,34 @@ def dihedral_torch(x0, x1, x2, x3):
     return 180 - torch.abs(torch.rad2deg(angle))
 
 
+def unique(x, dim=None):
+    """Unique elements of x and indices of those unique elements
+    https://github.com/pytorch/pytorch/issues/36748#issuecomment-619514810
+
+    e.g.
+
+    unique(tensor([
+        [1, 2, 3],
+        [1, 2, 4],
+        [1, 2, 3],
+        [1, 2, 5]
+    ]), dim=0)
+    => (tensor([[1, 2, 3],
+                [1, 2, 4],
+                [1, 2, 5]]),
+        tensor([0, 1, 3]))
+    """
+    unique, inverse = torch.unique(
+        x, sorted=True, return_inverse=True, dim=dim)
+    perm = torch.arange(inverse.size(0), dtype=inverse.dtype,
+                        device=inverse.device)
+    inverse, perm = inverse.flip([0]), perm.flip([0])
+    return unique, inverse.new_empty(unique.size(dim)).scatter_(0, inverse, perm)
+
+
+def torch_lexsort(a, dim=-1):
+    assert dim == -1  # Transpose if you want differently
+    assert a.ndim == 2  # Not sure what is numpy behaviour with > 2 dim
+    # To be consistent with numpy, we flip the keys (sort by last row first)
+    a_unq, inv = torch.unique(a.flip(0), dim=dim, sorted=True, return_inverse=True)
+    return torch.argsort(inv)
