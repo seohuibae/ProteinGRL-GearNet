@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F 
 from models.layers import pooling_layer
 
-def build_model(args, encoder):
+def build_model(args, encoder, pooling):
     try:
         hiddens = [int(s) for s in args.hiddens.split('-')]
     except:
@@ -19,11 +19,17 @@ def build_model(args, encoder):
         'FC-Fam': 1195, 
         'RX': 384,
     }
-    model_name = args.model 
-    require_pooling = True 
-    if model_name in ['gm-transformer']:
-        require_pooling = False 
-    return Net(encoder, output_dim_dict[args.dataset], require_pooling)
+    require_simple_pooling = True 
+    if args.model == 'gm-transformer':
+        require_simple_pooling = False 
+    return Net(encoder, pooling, output_dim_dict[args.dataset])
+
+def build_pooling(args):
+    if args.model in ['gm-transformer']:
+        return pooling_layer['identity']
+    else: 
+        return pooling_layer['mean']
+    # if not, the encoder would forward learnable pooling methods already (e.g. GMPOOL)
 
 def build_encoder(args): 
     model_name = args.model 
@@ -55,7 +61,7 @@ def build_encoder(args):
     elif model_name == 'gearnet-edge-ieconv': 
         from models.encoders import GearNetEdgeIEConv
         encoder = GearNetEdgeIEConv(input_dim, hiddens, hiddens[-1], args.dropout)
-        
+
     elif model_name == 'transformer': # structure-based
         from models.encoders import GraphTransformer
         encoder = GraphTransformer(input_dim, hiddens, hiddens[-1], args.dropout, use_edge_feat=True)
@@ -68,20 +74,18 @@ def build_encoder(args):
     else: 
         raise NotImplementedError
     ######################################## 
-    return encoder 
+    return encoder
 
 class Net(nn.Module): 
-    def __init__(self, encoder, output_dim, require_simple_pooling=True, **kwargs):
+    def __init__(self, encoder, pooling, output_dim, **kwargs):
         super(Net, self).__init__(**kwargs)
         self.encoder = encoder 
-        self.require_simple_pooling = require_simple_pooling
+        self.pooling = pooling 
         self.mlp_heads = nn.Sequential(nn.Linear(self.encoder.hiddens[-1], self.encoder.hiddens[-1]), nn.Dropout(0.25), nn.Linear(self.encoder.hiddens[-1], output_dim))
 
     def forward(self, data, training=None): 
         x = self.encoder(data)
-        if self.require_simple_pooling: 
-            x = pooling_layer['mean'](x, data.batch)
-            # if not, the encoder would generate learnable pooling methods (e.g. GMPOOL)
+        x = self.pooling(x, data.batch)
         x = self.mlp_heads(x)
         return F.log_softmax(x,dim=-1)
             
