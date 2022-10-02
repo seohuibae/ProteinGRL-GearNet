@@ -21,8 +21,6 @@ class DihedralPrediction(nn.Module):
     def forward(self, data):
         t = time.time()
         total_samples = self.get_dihedral_samples(data)
-        print(time.time()-t)
-        exit()
         mask, masked_data, masked_samples = self.sample_data(data, total_samples)
         masked_label = self.get_masked_label(masked_samples, data.coords_tensor)
         x = self.encoder(masked_data)
