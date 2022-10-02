@@ -8,7 +8,7 @@ import copy
 from models.layers import pooling_layer
 
 class MultiviewContrast(nn.Module): 
-    def __init__(self, encoder, batch_size, len_subsequence, radius_subspace, edge_mask_p=0.15, temperature=0.07): 
+    def __init__(self, encoder, pooling, batch_size, len_subsequence, radius_subspace, edge_mask_p=0.15, temperature=0.07): 
         super().__init__()
         self.encoder = encoder 
         self.batch_size = batch_size 
@@ -19,7 +19,7 @@ class MultiviewContrast(nn.Module):
         
         self.aug1 = self.augmentation_dict['aug1'] 
         self.aug2 = self.augmentation_dict['aug2']
-        self.pooling = pooling_layer['mean']
+        self.pooling = pooling
         self.mlp_heads = nn.Sequential(nn.Linear(self.encoder.hiddens[-1], self.encoder.hiddens[-1]), nn.Dropout(0.25), nn.Linear(self.encoder.hiddens[-1],self.encoder.hiddens[-1]))
         self.loss = InfoNCELoss(batch_size, temperature)
     

@@ -6,16 +6,17 @@ import torch
 from torch_geometric.loader import DataLoader 
 
 from datasets import get_dataset
-from models.build_model import build_model, build_encoder 
+from models.build_model import build_model, build_encoder, build_pooling 
 from utils.experiment import set_seed, set_device
 
 # load pretrained weights or initialize model 
 def get_pretrain_module(args):
 
     encoder = build_encoder(args)
+    pooling = build_pooling(args)
     if args.type == "cl": 
         from pretrains import MultiviewContrast 
-        pretrain_module = MultiviewContrast(encoder, args.batch_size, len_subsequence=50, radius_subspace=15, edge_mask_p=0.15) # batch size 96, 24 for GearNet-Edge, GearNet-Edge-IEConv 
+        pretrain_module = MultiviewContrast(encoder, pooling, args.batch_size, len_subsequence=50, radius_subspace=15, edge_mask_p=0.15) # batch size 96, 24 for GearNet-Edge, GearNet-Edge-IEConv 
     elif args.type == "residue":
         from pretrains import ResiduePrediction
         pretrain_module = ResiduePrediction(encoder, output_dim=21, num_samples=512)

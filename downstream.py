@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch_geometric.loader import DataLoader 
 
 from datasets import get_dataset
-from models.build_model import build_model, build_encoder
+from models.build_model import build_model, build_encoder, build_pooling
 from utils.experiment import set_seed, set_device
 from utils.metrics import f_max, acc  # aupr_pair, 
 
@@ -29,7 +29,8 @@ def get_model(args):
     else: 
         print('downstream training w/o pretrain')
         encoder = build_encoder(args)
-    model = build_model(args, encoder)
+    pooling = build_pooling(args)
+    model = build_model(args, encoder, pooling)
     return model
 
 def train_test_downstream(args, loader, model, device): 

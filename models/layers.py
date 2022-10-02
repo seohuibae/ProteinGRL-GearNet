@@ -16,6 +16,7 @@ pooling_layer = {
     'mean': global_mean_pool,
     'max': global_max_pool, 
     'add': global_add_pool,
+    'identity': (lambda x, batch: x)
 }
 
 class GraphConvolutionLayer(nn.Module):
