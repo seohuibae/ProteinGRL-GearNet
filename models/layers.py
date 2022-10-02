@@ -41,7 +41,16 @@ class GraphConvolutionLayer(nn.Module):
         elif conv == 'gat':
             from torch_geometric.nn.conv import GATConv
             from utils.data.protein import EDGE_TYPE_GEARNET
-            self.conv = GATConv(input_dim, output_dim, heads=2, negative_slope=0.2, dropout=0.1, edge_dim=len(EDGE_TYPE_GEARNET), bias=bias, add_self_loops=add_self_loop)
+            self.is_last = kwargs['is_last']
+            self.is_first = kwargs['is_first']
+            self.num_heads = 2
+            self.dropout_attn = 0.6
+            if self.is_first:
+                self.conv = GATConv(input_dim, output_dim, heads=self.num_heads, negative_slope=0.2, dropout=self.dropout_attn, bias=bias)
+            elif self.is_last: 
+                self.conv = GATConv(self.num_heads*input_dim, output_dim, heads=self.num_heads, negative_slope=0.2, concat=False, dropout=self.dropout_attn, bias=bias)
+            else: 
+                self.conv = GATConv(self.num_heads*input_dim, output_dim, heads=self.num_heads, negative_slope=0.2, dropout=self.dropout_attn, bias=bias)
             # edge features are added to the keys after linear transformation
         elif conv == 'gin':
             from torch_geometric.nn.conv import GINConv 
@@ -79,7 +88,7 @@ class GraphConvolutionLayer(nn.Module):
         if not bn: 
             self.bn = None 
         else: 
-            if conv in ['GAT', 'transformer'] and not self.is_last:
+            if conv in ['gat', 'transformer'] and not self.is_last:
                 self.bn = nn.BatchNorm1d(self.num_heads*output_dim)
             else: 
                 self.bn = nn.BatchNorm1d(output_dim) # concatenated 
