@@ -11,4 +11,4 @@
 ### Reference 
 - Zhang et al., arXiv 2022 (https://arxiv.org/abs/2203.06125)
 
-(Additional details would be further addressed in < a week)
+(Additional details are elaborated in the submmitted report)
